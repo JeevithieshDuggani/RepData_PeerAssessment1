@@ -4,22 +4,143 @@ output:
   html_document:
     keep_md: true
 ---
-
+```{r Load libraries, echo=FALSE,results='hide'}
+    require("ggplot2")
+```
 
 ## Loading and preprocessing the data
+The dataset for the current project can be found at [Activity Monitoring Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip).
 
+Extract `activity.csv` from `repdata_data_activity.zip` which is downloaded from [Activity Monitoring Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip) if it is not already present in the working directory.
+```{r Download & Extract Data}
+    url            <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip"
+    compressedName <- "repdata_data_activity.zip"
+    datasetName    <- "activity.csv"
+    
+    ##  Check for the presence of compressedName & datasetName. If not present, download.
+    if (!(file.exists(compressedName) | file.exists(datasetName))) 
+        download.file(url, compressedName)
+    ##  Check for presence of datasetName. If not present, extract.
+    if (!(file.exists(datasetName))) unzip(compressedName)
+    
+```
 
+Read the data from `activity.csv` into `activity` (dataFrame).
+```{r Load Data into a Data Frame}
+    activity        <- read.csv(datasetName)
+    activity$date   <- as.Date(activity$date) 
+```
 
 ## What is mean total number of steps taken per day?
+Aggregate the given data into a data frame with total steps and date as columns named  `stepsPerDay`. Ignore any data with `NA`.
+```{r Find the Total Steps per day}
+    stepsPerDay <- aggregate(steps ~ date, activity, sum)
+```
 
+Calculate the `mean` and the `median` of the total number of steps.
+```{r Mean and Median of Total number of steps taken each day}
+    meanDailySteps      <- mean(stepsPerDay$steps)
+    medianDailySteps    <- median(stepsPerDay$steps) 
+```
 
+Plot a `histogram` for `Total steps taken per day`.
+```{r Histogram of Total steps taken each day}
+    graph <- ggplot(stepsPerDay, aes(x = steps)) + geom_histogram(bins = 5)
+    graph <- graph + geom_vline(xintercept = meanDailySteps, size = 2)
+    graph <- graph + geom_vline(xintercept = medianDailySteps, size = 2)
+    print(graph)
+```
+
+The mean total number of steps taken per day is `r meanDailySteps`.
+The median of the same is `r medianDailySteps`.
 
 ## What is the average daily activity pattern?
+Aggregate the given data into a data frame with average steps and interval as columns named  `avgStepsPerInt`. Ignore any data with `NA`.
+```{r Find the Average Steps per Interval}
+    avgStepsPerInt <- aggregate(steps ~ interval, activity, mean)
+```
 
+Calculate the `max` of the average steps.
+```{r Maximum of average steps taken each day}
+    rowindex    <- which.max(avgStepsPerInt$steps)
+    maxAvgSteps <- avgStepsPerInt[rowindex,]$steps
+    maxInterval <- avgStepsPerInt[rowindex,]$interval
+```
 
+Plot a `line graph` for `Average steps taken per Interval`.
+```{r Histogram of Total steps taken each day}
+    graph <- ggplot(avgStepsPerInt, aes(x = interval, y = steps)) + geom_line()
+    graph <- graph + geom_vline(aes(xintercept = maxInterval), colour="#BB0000")
+    print(graph)
+```
+
+The maximum average steps taken in an interval is `r maxAvgSteps`.
+The maximum average steps taken in the interval `r maxInterval`.
 
 ## Imputing missing values
+Calculate the number of rows containing `NA`.
+```{r Find the Total Steps per day}
+    nMissingRows <- sum(is.na(activity$steps))
+```
 
+There are `r nMissingRows` in the given data `activity`.
 
+Create a new `dataFrame` to store the new imputed Data `imputedActivity`
+```{r Fill in the missing data from the data set activity}
+    imputedActivity <- activity
+```
+Fill in the `NA` spaces with the average steps taken in that interval.
+```{r Fill in the missing data from the data set activity}
+    naIntervals <- activity[is.na(activity$steps),3]
+    imputedActivity[is.na(imputedActivity$steps),1] <- avgStepsPerInt[naIntervals%/%5+1,2]
+```
+
+Aggregate the given data into a data frame with total steps and date as columns named  `stepsPerDay`. Ignore any data with `NA`.
+```{r Find the Total Steps per day}
+    imputedStepsPD <- aggregate(steps ~ date, imputedActivity, sum)
+```
+
+Calculate the `mean` and the `median` of the total number of steps.
+```{r Mean and Median of Total number of steps taken each day}
+    imputedMeanDS      <- mean(imputedStepsPD$steps)
+    imputedMedianDS    <- median(imputedStepsPD$steps) 
+```
+
+Plot a `histogram` for `Total steps taken per day`.
+```{r Histogram of Total steps taken each day}
+    graph <- ggplot(imputedStepsPD, aes(x = steps)) + geom_histogram(bins = 5)
+    graph <- graph + geom_vline(xintercept = imputedMeanDS, size = 2)
+    graph <- graph + geom_vline(xintercept = imputedMedianDS, size = 2)
+    print(graph)
+```
+
+The imputed mean total number of steps taken per day is `r imputedMeanDS`.
+The imputed median of the same is `r imputedMedianDS`.
+
+Both the mean and median calculated from the imputed values are lower by a small amount.
+
+The mean is lower by `r meanDailySteps - imputedMeanDS`.
+The median is lower by `r medianDailySteps - imputedMedianDS`.
 
 ## Are there differences in activity patterns between weekdays and weekends?
+Divide the days into weekdays and weekends and add the column dayofweek to `activity`.
+```{r Add factor weekends and weekdays}
+    logicDayofWeek <- weekdays(imputedActivity$date) %in% c("Sunday", "Saturday")
+    imputedActivity$dayofweek <- "weekday"
+    imputedActivity[logicDayofWeek,4] <- "weekend"
+    imputedActivity$dayofweek <- as.factor(imputedActivity$dayofweek)
+```
+
+Aggregate the given data into a data frame with average steps and interval as columns named  `avgStepsPerInt`. Ignore any data with `NA`.
+```{r Find the Average Steps per Interval}
+    avgStepsPerIntW <- aggregate(steps ~ interval + dayofweek, imputedActivity, mean)
+```
+
+Plot a `line graph` for `Average steps taken per Interval during weekdays and weekends`.
+```{r Histogram of Total steps taken each day}
+    graph <- ggplot(avgStepsPerIntW, aes(x = interval, y = steps)) + geom_line()
+    graph <- graph + facet_grid(dayofweek~.)
+    print(graph)
+```
+
+#### End of the Document
