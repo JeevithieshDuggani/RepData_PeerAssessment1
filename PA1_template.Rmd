@@ -4,8 +4,9 @@ output:
   html_document:
     keep_md: true
 ---
-```{r Load libraries, echo=FALSE,results='hide'}
+```{r Load libraries and remove scientific notation, echo=FALSE,results='hide'}
     require("ggplot2")
+    options(scipen = 999)
 ```
 
 ## Loading and preprocessing the data
@@ -68,7 +69,7 @@ Calculate the `max` of the average steps.
 ```
 
 Plot a `line graph` for `Average steps taken per Interval`.
-```{r Histogram of Total steps taken each day}
+```{r line graph of average steps taken per interval}
     graph <- ggplot(avgStepsPerInt, aes(x = interval, y = steps)) + geom_line()
     graph <- graph + geom_vline(aes(xintercept = maxInterval), colour="#BB0000")
     print(graph)
@@ -79,14 +80,14 @@ The maximum average steps taken in the interval `r maxInterval`.
 
 ## Imputing missing values
 Calculate the number of rows containing `NA`.
-```{r Find the Total Steps per day}
+```{r Find the Total Missing Steps}
     nMissingRows <- sum(is.na(activity$steps))
 ```
 
 There are `r nMissingRows` in the given data `activity`.
 
 Create a new `dataFrame` to store the new imputed Data `imputedActivity`
-```{r Fill in the missing data from the data set activity}
+```{r create dataFrame imputedActivity}
     imputedActivity <- activity
 ```
 Fill in the `NA` spaces with the average steps taken in that interval.
@@ -96,18 +97,18 @@ Fill in the `NA` spaces with the average steps taken in that interval.
 ```
 
 Aggregate the given data into a data frame with total steps and date as columns named  `stepsPerDay`. Ignore any data with `NA`.
-```{r Find the Total Steps per day}
+```{r Find the Total Steps per day using imputed data}
     imputedStepsPD <- aggregate(steps ~ date, imputedActivity, sum)
 ```
 
 Calculate the `mean` and the `median` of the total number of steps.
-```{r Mean and Median of Total number of steps taken each day}
+```{r Imputed Mean and Median of Total number of steps taken each day}
     imputedMeanDS      <- mean(imputedStepsPD$steps)
     imputedMedianDS    <- median(imputedStepsPD$steps) 
 ```
 
 Plot a `histogram` for `Total steps taken per day`.
-```{r Histogram of Total steps taken each day}
+```{r Histogram of Total imputed steps taken each day}
     graph <- ggplot(imputedStepsPD, aes(x = steps)) + geom_histogram(bins = 5)
     graph <- graph + geom_vline(xintercept = imputedMeanDS, size = 2)
     graph <- graph + geom_vline(xintercept = imputedMedianDS, size = 2)
@@ -132,12 +133,12 @@ Divide the days into weekdays and weekends and add the column dayofweek to `acti
 ```
 
 Aggregate the given data into a data frame with average steps and interval as columns named  `avgStepsPerInt`. Ignore any data with `NA`.
-```{r Find the Average Steps per Interval}
+```{r Find the Average Steps per Interval and weekday}
     avgStepsPerIntW <- aggregate(steps ~ interval + dayofweek, imputedActivity, mean)
 ```
 
 Plot a `line graph` for `Average steps taken per Interval during weekdays and weekends`.
-```{r Histogram of Total steps taken each day}
+```{r line graph for avg. steps taken per int. during weekdays and weekends}
     graph <- ggplot(avgStepsPerIntW, aes(x = interval, y = steps)) + geom_line()
     graph <- graph + facet_grid(dayofweek~.)
     print(graph)
